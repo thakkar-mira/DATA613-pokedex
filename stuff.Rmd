@@ -1,0 +1,93 @@
+---
+title: "RShiny App Project"
+author: "Ruby & Mira"
+date: "8/2/2022"
+output: html_document
+---
+
+```{r include=FALSE}
+library(tidyverse)
+library(rvest)
+library(repurrrsive)
+library(shiny)
+library(shinyWidgets)
+library(plotly)
+library(bslib)
+library(markdown)
+```
+
+Our Shiny App is based off of the data we scraped for our graduate student project. Our app allows users to explore generation I pokemon statistics based on pokemon types. 
+
+Below, we have our clean, webscraped data:
+
+``` {r}
+Link <- "https://pokemondb.net/pokedex/stats/gen1"
+
+page = read_html(Link)
+Name = page%>% html_nodes(".cell-name")%>%
+  html_text()
+
+page = read_html(Link)
+Type = page%>% html_nodes(".cell-icon")%>%
+  html_text()
+
+page = read_html(Link)
+Total = page%>% html_nodes(".cell-total")%>%
+  html_text()
+
+page = read_html(Link)
+Attack = page%>% html_nodes(".cell-num:nth-child(6)")%>%
+  html_text()
+
+page = read_html(Link)
+Defense = page%>% html_nodes(".cell-num:nth-child(7)")%>%
+  html_text()
+
+page = read_html(Link)
+Speed = page%>% html_nodes(".cell-num:nth-child(10)")%>%
+  html_text()
+
+page = read_html(Link)
+SpAtk = page %>% html_nodes(".cell-num:nth-child(8)")%>%
+  html_text()
+
+page = read_html(Link)
+SpDef = page %>% html_nodes(".cell-num:nth-child(9)")%>%
+  html_text()
+
+pokemondataframe_g1 = data.frame(Name, Type, Total, Attack, Defense, SpAtk, SpDef, Speed)
+
+as_tibble(pokemondataframe_g1)
+
+#recode character variables to doubles because they are continuous, numerical variables
+pokemon_df_clean <- pokemondataframe_g1 %>%
+  mutate(Total = as.numeric(Total),
+         Attack = as.numeric(Attack),
+         Defense = as.numeric(Defense),
+         Speed = as.numeric(Speed),
+         SpAtk = as.numeric(SpAtk),
+         SpDef = as.numeric(SpDef))
+
+#parse pokemon with two types into two columns
+pokemon_df_clean$Type <- gsub("(?!^)(?=[[:upper:]])", ".", pokemon_df_clean$Type, perl=T)
+
+pokemon <- pokemon_df_clean %>% separate(Type, c("Primary_Type", "Secondary_Type"), extra = "merge", fill = "right")
+
+#recode the types as factors so ggplot will read them correctly
+pokemontypes <- c("Grass", "Poison", "Fire", "Flying", "Water", "Bug", "Normal", "Electric", "Ground", "Fighting", "Fairy", "Psychic", "Rock", "Steel", "Ice", "Ghost", "Dragon")
+
+pokemon$Primary_Type <- factor(pokemon$Primary_Type, levels = pokemontypes)
+
+pokemon$Secondary_Type <- factor(pokemon$Secondary_Type, levels = pokemontypes)
+
+ID_no <- c(1:151)
+ID <- formatC(ID_no, width = 3, format = "d", flag = "0")
+
+pokemon$ID <- ID
+
+pokemon1 <- pokemon
+
+pokemon$Name <- tolower(pokemon$Name)
+
+pokemon
+```
